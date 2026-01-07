@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Recetas Pro</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --color-A: #FF9800;  /* Almuerzos - Naranja */
+            --color-C: #4CAF50;  /* Comidas - Verde */
+            --color-CE: #2196F3; /* Cenas - Azul */
+            --color-P: #E91E63;  /* Postres - Rosa */
+        }
+
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 80px; }
+        
+        header { background: #333; color: white; text-align: center; padding: 10px; position: sticky; top: 0; z-index: 10; }
+
+        /* Pestañas de Navegación */
+        .nav-tabs { display: flex; background: white; overflow-x: auto; border-bottom: 2px solid #ddd; }
+        .tab { flex: 1; padding: 15px; border: none; background: none; font-weight: bold; cursor: pointer; min-width: 80px; }
+        .tab[data-cat="A"] { color: var(--color-A); }
+        .tab[data-cat="C"] { color: var(--color-C); }
+        .tab[data-cat="CE"] { color: var(--color-CE); }
+        .tab[data-cat="P"] { color: var(--color-P); }
+        .tab.active { border-bottom: 4px solid currentColor; background: #f9f9f9; }
+
+        /* Tarjetas de Receta */
+        .container { padding: 15px; }
+        .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 10px solid #ccc; }
+        .card.cat-A { border-left-color: var(--color-A); }
+        .card.cat-C { border-left-color: var(--color-C); }
+        .card.cat-CE { border-left-color: var(--color-CE); }
+        .card.cat-P { border-left-color: var(--color-P); }
+        
+        .badge { float: right; background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .btn-add-list { background: #eee; border: none; padding: 8px; border-radius: 5px; width: 100%; margin-top: 10px; cursor: pointer; }
+
+        /* Formulario y Lista de Compras */
+        #form-area, #lista-area { display: none; background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-save { background: #4CAF50; color: white; border: none; width: 100%; padding: 12px; font-size: 16px; border-radius: 5px; }
+
+        /* Barra Inferior */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #333; display: flex; justify-content: space-around; padding: 10px 0; }
+        .btn-nav { color: white; border: none; background: none; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 id="view-title">Almuerzos</h2>
+</header>
+
+<nav class="nav-tabs" id="category-tabs">
+    <button class="tab active" data-cat="A" onclick="cambiarVista('A')">Alm.</button>
+    <button class="tab" data-cat="C" onclick="cambiarVista('C')">Com.</button>
+    <button class="tab" data-cat="CE" onclick="cambiarVista('CE')">Cenas</button>
+    <button class="tab" data-cat="P" onclick="cambiarVista('P')">Postres</button>
+</nav>
+
+<div class="container">
+    <div id="form-area">
+        <h3>Nueva Receta</h3>
+        <input type="text" id="f-titulo" placeholder="Título de la receta">
+        <textarea id="f-ing" rows="4" placeholder="Ingredientes (uno por línea)"></textarea>
+        <textarea id="f-prep" rows="4" placeholder="Procedimiento"></textarea>
+        <input type="number" id="f-cal" placeholder="Calorías aproximadas">
+        <button class="btn-save" onclick="guardarReceta()">Guardar en la sección actual</button>
+    </div>
+
+    <div id="lista-area">
+        <h3>🛒 Lista de Compras</h3>
+        <div id="lista-items"></div>
+        <button onclick="borrarLista()" style="background:red; color:white; border:none; padding:10px; width:100%; margin-top:10px;">Vaciar Lista</button>
+    </div>
+
+    <div id="app"></div>
+</div>
+
+<nav class="bottom-nav">
+    <button class="btn-nav" onclick="cambiarVista(currentCat)">🏠 Inicio</button>
+    <button class="btn-nav" onclick="mostrarFormulario()">➕ Nueva</button>
+    <button class="btn-nav" onclick="mostrarLista()">🛒 Lista</button>
+</nav>
+
+<script>
+    let currentCat = 'A';
+    let recetas = JSON.parse(localStorage.getItem('misRecetas_v1')) || [];
+    let listaCompras = JSON.parse(localStorage.getItem('miLista_v1')) || [];
+
+    function cambiarVista(cat) {
+        currentCat = cat;
+        document.getElementById('form-area').style.display = 'none';
+        document.getElementById('lista-area').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        
+        // Actualizar UI de pestañas
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab[data-cat="${cat}"]`).classList.add('active');
+        
+        const titulos = { 'A': 'Almuerzos', 'C': 'Comidas', 'CE': 'Cenas', 'P': 'Postres y Otros' };
+        document.getElementById('view-title').innerText = titulos[cat];
+        
+        renderRecetas();
+    }
+
+    function renderRecetas() {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+        const filtradas = recetas.filter(r => r.categoria === currentCat);
+
+        filtradas.forEach(r => {
+            const card = document.createElement('div');
+            card.className = `card cat-${r.categoria}`;
+            card.innerHTML = `
+                <span class="badge">${r.id}</span>
+                <h4>${r.titulo}</h4>
+                <p><strong>Ingredientes:</strong><br>${r.ingredientes.replace(/\n/g, '<br>')}</p>
+                <p><strong>Preparación:</strong><br><em>${r.preparacion}</em></p>
+                <hr>
+                <small>📅 ${r.fecha} | 🔥 ${r.calorias} kcal</small>
+                <button class="btn-add-list" onclick="agregarALista('${r.id}')">🛒 Añadir ingredientes a la lista</button>
+            `;
+            app.appendChild(card);
+        });
+    }
+
+    function mostrarFormulario() {
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('lista-area').style.display = 'none';
+        document.getElementById('form-area').style.display = 'block';
+        document.getElementById('view-title').innerText = "Añadir a " + currentCat;
+    }
+
+    function guardarReceta() {
+        const num = recetas.filter(r => r.categoria === currentCat).length + 1;
+        const nueva = {
+            id: `${currentCat}-${num}`,
+            categoria: currentCat,
+            titulo: document.getElementById('f-titulo').value,
+            ingredientes: document.getElementById('f-ing').value,
+            preparacion: document.getElementById('f-prep').value,
+            calorias: document.getElementById('f-cal').value || 0,
+            fecha: new Date().toLocaleDateString()
+        };
+
+        recetas.push(nueva);
+        localStorage.setItem('misRecetas_v1', JSON.stringify(recetas));
+        alert("Receta guardada!");
+        document.getElementById('f-titulo').value = '';
+        document.getElementById('f-ing').value = '';
+        document.getElementById('f-prep').value = '';
+        cambiarVista(currentCat);
+    }
+
+    function agregarALista(id) {
+        const r = recetas.find(rec => rec.id === id);
+        listaCompras.push(`${r.titulo}: ${r.ingredientes}`);
+        localStorage.setItem('miLista_v1', JSON.stringify(listaCompras));
+        alert("Agregado a la lista de compras");
+    }
+
+    function mostrarLista() {
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('form-area').style.display = 'none';
+        document.getElementById('lista-area').style.display = 'block';
+        document.getElementById('view-title').innerText = "Mi Lista";
+        
+        const div = document.getElementById('lista-items');
+        div.innerHTML = listaCompras.map(i => `<p style="border-bottom:1px solid #eee; padding:5px;">✅ ${i.replace(/\n/g, ', ')}</p>`).join('');
+    }
+
+    function borrarLista() {
+        listaCompras = [];
+        localStorage.removeItem('miLista_v1');
+        mostrarLista();
+    }
+
+    // Inicio
+    cambiarVista('A');
+</script>
+
+</body>
+</html>

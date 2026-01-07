@@ -1,0 +1,24 @@
+{
+  "short_name": "Recetas",
+  "name": "Mi Recetario Personal",
+  "description": "Aplicación para gestionar recetas y listas de compras",
+  "icons": [
+    {
+      "src": "icono-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icono-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#f0f2f5",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#333333"
+}
