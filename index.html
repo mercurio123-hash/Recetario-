@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>365 Recetas: El Reto</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --color-A: #FF9800; --color-C: #4CAF50; --color-CE: #2196F3; --color-P: #E91E63;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        header { background: #333; color: white; text-align: center; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        h2 { margin: 0; font-size: 1.2rem; }
+        
+        .nav-tabs { display: flex; background: white; border-bottom: 2px solid #ddd; position: sticky; top: 54px; z-index: 90; }
+        .tab { flex: 1; padding: 12px 5px; border: none; background: none; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.3s; color: #666; }
+        .tab.active { border-bottom: 4px solid #333; background: #f9f9f9; color: #000; }
+        .tab[data-cat="A"].active { border-color: var(--color-A); color: var(--color-A); }
+        .tab[data-cat="C"].active { border-color: var(--color-C); color: var(--color-C); }
+        .tab[data-cat="CE"].active { border-color: var(--color-CE); color: var(--color-CE); }
+        .tab[data-cat="P"].active { border-color: var(--color-P); color: var(--color-P); }
+
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .search-box { width: 100%; padding: 12px 20px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 25px; box-sizing: border-box; font-size: 16px; display: block; }
+
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 8px solid #ccc; position: relative; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .card.cat-A { border-left-color: var(--color-A); }
+        .card.cat-C { border-left-color: var(--color-C); }
+        .card.cat-CE { border-left-color: var(--color-CE); }
+        .card.cat-P { border-left-color: var(--color-P); }
+        
+        .badge { position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .btn-del { background: #ffeded; color: #d32f2f; border: none; padding: 6px 10px; border-radius: 5px; float: right; font-size: 12px; cursor: pointer; }
+        .btn-add-list { background: #f0f0f0; border: none; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; }
+
+        .panel { display: none; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 10px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        
+        .dif-group { display: flex; justify-content: space-between; margin: 10px 0 20px 0; background: #f9f9f9; padding: 10px; border-radius: 8px; }
+        .dif-opt { font-size: 14px; cursor: pointer; }
+        .tag-pill { background: #eee; border-radius: 15px; padding: 3px 10px; font-size: 11px; margin: 3px 3px 0 0; display: inline-block; color: #555; }
+
+        .btn-main { background: #333; color: white; border: none; width: 100%; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #333; display: flex; justify-content: space-around; padding: 10px 0; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
+        .btn-nav { color: white; border: none; background: none; text-align: center; font-size: 11px; opacity: 0.8; flex: 1; cursor: pointer; }
+        .btn-nav span { display: block; font-size: 22px; margin-bottom: 3px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 id="view-title">365 Recetas</h2>
+</header>
+
+<nav class="nav-tabs" id="tabs-container">
+    <button class="tab active" data-cat="A" onclick="cambiarVista('A')">Almuerzos</button>
+    <button class="tab" data-cat="C" onclick="cambiarVista('C')">Comidas</button>
+    <button class="tab" data-cat="CE" onclick="cambiarVista('CE')">Cenas</button>
+    <button class="tab" data-cat="P" onclick="cambiarVista('P')">Otros</button>
+</nav>
+
+<div class="container">
+    <input type="text" id="buscador" class="search-box" placeholder="🔍 Buscar receta, ingrediente o #tag..." oninput="renderRecetas()">
+
+    <div id="app-content"></div>
+
+    <div id="form-area" class="panel">
+        <h3 style="margin-top:0">➕ Nueva Receta</h3>
+        <label>Categoría</label>
+        <select id="f-cat">
+            <option value="A">Almuerzo</option>
+            <option value="C" selected>Comida</option>
+            <option value="CE">Cena</option>
+            <option value="P">Postres y Otros</option>
+        </select>
+        
+        <label>Nombre del platillo</label>
+        <input type="text" id="f-titulo" placeholder="Ej: Pasta con camarones">
+        
+        <label>Dificultad</label>
+        <div class="dif-group">
+            <label class="dif-opt"><input type="radio" name="dificultad" value="Fácil" checked> Fácil</label>
+            <label class="dif-opt"><input type="radio" name="dificultad" value="Media"> Media</label>
+            <label class="dif-opt"><input type="radio" name="dificultad" value="Difícil"> Difícil</label>
+        </div>
+
+        <label>Tiempo y Calorías</label>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="f-tiempo" placeholder="Tiempo (45 min)">
+            <input type="number" id="f-cal" placeholder="Kcal">
+        </div>
+
+        <label>Ingredientes (uno por línea)</label>
+        <textarea id="f-ing" rows="4" placeholder="1 taza de arroz&#10;2 tazas de agua"></textarea>
+        
+        <label>Preparación</label>
+        <textarea id="f-prep" rows="4" placeholder="Paso 1: Hervir el agua..."></textarea>
+        
+        <label>Etiquetas (separadas por comas)</label>
+        <input type="text" id="f-tags" placeholder="ensalada, ligero, mariscos">
+        
+        <button class="btn-main" onclick="guardarReceta()">Guardar en el Reto 365</button>
+    </div>
+
+    <div id="lista-area" class="panel">
+        <h3>🛒 Lista de Compras</h3>
+        <div id="lista-items"></div>
+        <button class="btn-main" style="background:#d32f2f; margin-top:20px;" onclick="borrarLista()">Vaciar Lista Completa</button>
+    </div>
+
+    <div id="ajustes-area" class="panel">
+        <h3>⚙️ Copia de Seguridad</h3>
+        <p style="font-size:14px; color:#666;">Descarga tus recetas para no perderlas si borras el historial del navegador.</p>
+        <button class="btn-main" style="background:#2196F3" onclick="exportarRecetas()">📥 Descargar .JSON</button>
+        <hr style="margin:25px 0; border:0; border-top:1px solid #eee;">
+        <label>Restaurar desde Backup:</label>
+        <input type="file" id="importFile" accept=".json">
+        <button class="btn-main" style="background:#4CAF50" onclick="importarRecetas()">📤 Cargar Archivo</button>
+    </div>
+</div>
+
+<nav class="bottom-nav">
+    <button class="btn-nav" onclick="irAInicio()"><span>🏠</span>Inicio</button>
+    <button class="btn-nav" onclick="mostrarPanel('form-area', 'Nueva Receta')"><span>➕</span>Añadir</button>
+    <button class="btn-nav" onclick="mostrarPanel('lista-area', 'Compras')"><span>🛒</span>Lista</button>
+    <button class="btn-nav" onclick="mostrarPanel('ajustes-area', 'Ajustes')"><span>⚙️</span>Backup</button>
+</nav>
+
+<script>
+    let currentCat = 'A';
+    let recetas = JSON.parse(localStorage.getItem('recetas_365_v3')) || [];
+    let listaCompras = JSON.parse(localStorage.getItem('lista_365_v3')) || [];
+
+    function cambiarVista(cat) {
+        currentCat = cat;
+        ocultarTodosLosPaneles();
+        document.getElementById('app-content').style.display = 'block';
+        document.getElementById('buscador').style.display = 'block';
+        document.getElementById('tabs-container').style.display = 'flex';
+        
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active');
+            if(t.getAttribute('data-cat') === cat) t.classList.add('active');
+        });
+        
+        const titulos = { 'A': 'Almuerzos', 'C': 'Comidas', 'CE': 'Cenas', 'P': 'Postres y Otros' };
+        document.getElementById('view-title').innerText = "365: " + titulos[cat];
+        renderRecetas();
+    }
+
+    function irAInicio() {
+        cambiarVista(currentCat);
+    }
+
+    function mostrarPanel(id, titulo) {
+        ocultarTodosLosPaneles();
+        document.getElementById('tabs-container').style.display = 'none';
+        document.getElementById('buscador').style.display = 'none';
+        document.getElementById(id).style.display = 'block';
+        document.getElementById('view-title').innerText = titulo;
+        if(id === 'lista-area') renderLista();
+    }
+
+    function ocultarTodosLosPaneles() {
+        document.getElementById('app-content').style.display = 'none';
+        document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+    }
+
+    function renderRecetas() {
+        const container = document.getElementById('app-content');
+        const query = document.getElementById('buscador').value.toLowerCase();
+        container.innerHTML = '';
+
+        const filtradas = recetas.filter(r => {
+            const matchesCat = r.categoria === currentCat;
+            const textoBusqueda = (r.titulo + r.ingredientes + (r.tags || "")).toLowerCase();
+            return matchesCat && textoBusqueda.includes(query);
+        });
+
+        if(filtradas.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color:#888; margin-top:50px;">Aún no hay recetas en esta sección.<br>¡Comienza el reto!</p>`;
+            return;
+        }
+
+        filtradas.forEach(r => {
+            const difIcon = r.dificultad === 'Fácil' ? '🟢' : (r.dificultad === 'Media' ? '🟡' : '🔴');
+            const card = document.createElement('div');
+            card.className = `card cat-${r.categoria}`;
+            card.innerHTML = `
+                <button class="btn-del" onclick="borrarReceta('${r.id}')">Eliminar</button>
+                <span class="badge">${r.id}</span>
+                <h3 style="margin:0 0 5px 0">${r.titulo}</h3>
+                <div style="font-size:12px; margin-bottom:12px; color:#555;">
+                    ${difIcon} <strong>${r.dificultad}</strong> | ⏱️ ${r.tiempo || '--'}
+                </div>
+                <p style="font-size:14px; margin:5px 0;"><strong>Ingredientes:</strong><br>${r.ingredientes.replace(/\n/g, '<br>')}</p>
+                <div style="margin-top:10px;">
+                    ${(r.tags || "").split(',').map(t => t.trim() ? `<span class="tag-pill">#${t.trim()}</span>` : '').join('')}
+                </div>
+                <button class="btn-add-list" onclick="agregarALista('${r.id}')">🛒 Añadir ingredientes a la lista</button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function guardarReceta() {
+        const titulo = document.getElementById('f-titulo').value.trim();
+        if(!titulo) { alert("Por favor, ponle un nombre a la receta"); return; }
+
+        const cat = document.getElementById('f-cat').value;
+        const dif = document.querySelector('input[name="dificultad"]:checked').value;
+        const num = recetas.filter(r => r.categoria === cat).length + 1;
+        
+        const nueva = {
+            id: `${cat}-${num}`,
+            categoria: cat,
+            titulo: titulo,
+            dificultad: dif,
+            tiempo: document.getElementById('f-tiempo').value,
+            ingredientes: document.getElementById('f-ing').value,
+            preparacion: document.getElementById('f-prep').value,
+            tags: document.getElementById('f-tags').value,
+            calorias: document.getElementById('f-cal').value || 0,
+            fecha: new Date().toLocaleDateString()
+        };
+
+        recetas.push(nueva);
+        localStorage.setItem('recetas_365_v3', JSON.stringify(recetas));
+        
+        // Limpiar
+        document.getElementById('f-titulo').value = '';
+        document.getElementById('f-ing').value = '';
+        document.getElementById('f-prep').value = '';
+        document.getElementById('f-tags').value = '';
+        
+        alert("¡Receta guardada!");
+        cambiarVista(cat);
+    }
+
+    function borrarReceta(id) {
+        if(confirm("¿Estás seguro de eliminar esta receta?")) {
+            recetas = recetas.filter(r => r.id !== id);
+            localStorage.setItem('recetas_365_v3', JSON.stringify(recetas));
+            renderRecetas();
+        }
+    }
+
+    function agregarALista(id) {
+        const r = recetas.find(rec => rec.id === id);
+        listaCompras.push({ titulo: r.titulo, ing: r.ingredientes });
+        localStorage.setItem('lista_365_v3', JSON.stringify(listaCompras));
+        alert("Ingredientes añadidos a tu lista de compras");
+    }
+
+    function renderLista() {
+        const div = document.getElementById('lista-items');
+        div.innerHTML = '';
+        if(listaCompras.length === 0) {
+            div.innerHTML = '<p style="color:#888;">Tu lista está vacía.</p>';
+            return;
+        }
+        listaCompras.forEach((item, index) => {
+            div.innerHTML += `
+                <div style="border-bottom:1px solid #eee; padding:10px 0;">
+                    <strong>📍 ${item.titulo}</strong><br>
+                    <span style="font-size:13px; color:#555;">${item.ing.replace(/\n/g, ', ')}</span>
+                </div>
+            `;
+        });
+    }
+
+    function borrarLista() {
+        if(confirm("¿Vaciar toda la lista?")) {
+            listaCompras = [];
+            localStorage.setItem('lista_365_v3', JSON.stringify(listaCompras));
+            renderLista();
+        }
+    }
+
+    function exportarRecetas() {
+        const blob = new Blob([JSON.stringify(recetas, null, 2)], {type : 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `backup_365_recetas.json`;
+        a.click();
+    }
+
+    function importarRecetas() {
+        const file = document.getElementById('importFile').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                recetas = JSON.parse(e.target.result);
+                localStorage.setItem('recetas_365_v3', JSON.stringify(recetas));
+                alert("¡Backup restaurado con éxito!");
+                cambiarVista('A');
+            } catch(err) { alert("Archivo no válido"); }
+        };
+        reader.readAsText(file);
+    }
+
+    // Arrancar la app
+    cambiarVista('A');
+</script>
+</body>
+</html>
